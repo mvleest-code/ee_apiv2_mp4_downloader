@@ -2,7 +2,11 @@ import requests
 import json
 import pytz
 import time
+import timeit
 from datetime import datetime, timedelta
+
+# Added timer
+start_time = timeit.default_timer()
 
 # Global variables
 with open('baseaaa.json') as user_file:
@@ -82,7 +86,7 @@ def mp4download():
     st = response.json()[0]["s"]
     et = response.json()[0]["e"]
     if response.status_code == 200:
-        name = "start_"+st+"_end_"+et+"_video.mp4"
+        name = camid + "start_"+st+"_end_"+et+"_video.mp4"
         url = f"https://{branding}{domain}/asset/play/video.mp4?id={camid}&start_timestamp=" + st +"&end_timestamp=" + et
         headers = {"auth_key": auth_key,
                    "Cookie": "auth_key=" + auth_key
@@ -96,6 +100,8 @@ def mp4download():
                         if chunk:
                             f.write(chunk)
             print("Download Mp4: %s" % HTTP_STATUS_CODE[response.status_code])
+            elapsed = timeit.default_timer() - start_time
+            print("time elapsed:", elapsed)
             return response.status_code
         
         except requests.exceptions.RequestException as e:
