@@ -1,6 +1,7 @@
 import requests
 import json
 import pytz
+import time
 from datetime import datetime, timedelta
 
 # Global variables
@@ -17,8 +18,8 @@ with open('baseaaa.json') as user_file:
 # Start and end timestamp
 timestamp = datetime.now(pytz.timezone('UTC')).strftime('%Y%m%d%H%M%S.000')  # UTC Timestamp
 tz = pytz.timezone('Europe/Amsterdam')  # Amsterdam TimeZone
-d = datetime.today() - timedelta(hours=3, minutes=50)  # Current time minus the specified duration
-e = datetime.today() - timedelta(hours=2, minutes=5)  # Current time minus the specified duration
+d = datetime.today() - timedelta(hours=0, minutes=50)  # Current time minus the specified duration
+e = datetime.today() - timedelta(hours=0, minutes=5)  # Current time minus the specified duration
 starttime = d.strftime('%Y%m%d%H%M%S.000')
 endtime = e.strftime('%Y%m%d%H%M%S.000')
 print("Start timestamp:", starttime)
@@ -72,27 +73,40 @@ except requests.exceptions.RequestException as e:
 
 # MP4 download function
 def mp4download():
-    name = "video.mp4"
-    url = f"https://{branding}{domain}/asset/play/video.mp4?id={camid}&start_timestamp={starttime}&end_timestamp={endtime}"
-    headers = {"auth_key": auth_key}
-
-    try:
-        response = s.get(url, headers=headers)
-        response.raise_for_status()
-        with open(name, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-        print("Download Mp4: %s" % HTTP_STATUS_CODE[response.status_code])
-        return response.status_code
-    
-    except requests.exceptions.RequestException as e:
-        print("Error: %s" % HTTP_STATUS_CODE[response.status_code], str(e))
+    url = f"https://{branding}{domain}/asset/list/video?id={camid}&start_timestamp={starttime}&count=-1"
+    payload = {}
+    headers = {"auth_key": auth_key,
+               "Cookie": "auth_key=" + auth_key
+               }
+    response = requests.request("GET", url, headers=headers, data=payload)
+    st = response.json()[0]["s"]
+    et = response.json()[0]["e"]
+    if response.status_code == 200:
+        name = "start_"+st+"_end_"+et+"_video.mp4"
+        url = f"https://{branding}{domain}/asset/play/video.mp4?id={camid}&start_timestamp=" + st +"&end_timestamp=" + et
+        headers = {"auth_key": auth_key,
+                   "Cookie": "auth_key=" + auth_key
+                   }
+        try:
+            response = s.get(url, headers=headers)
+            response.raise_for_status()
+            if response.status_code == 200:
+                with open(name, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+            print("Download Mp4: %s" % HTTP_STATUS_CODE[response.status_code])
+            return response.status_code
+        
+        except requests.exceptions.RequestException as e:
+            print("Error: %s" % HTTP_STATUS_CODE[response.status_code], str(e))
         return None
+        
 
 # Main loop
 while True:
     status_code = mp4download()
+    time.sleep(1)
     if status_code == 200:
         print("Done")
         break
